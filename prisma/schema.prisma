@@ -1,0 +1,333 @@
+// ─────────────────────────────────────────────────────────────────
+// STEAMhives RMS — Prisma Schema
+// Database: PostgreSQL (Neon / Supabase / local pg)
+//
+// NOTE: The project uses raw `pg` queries for all DB access.
+// This schema is provided as a reference and for tooling that
+// reads prisma/schema.prisma (e.g. prisma studio, db push for
+// a clean environment). Business logic uses lib/db.ts directly.
+// ─────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Schools (multi-tenant root) ──────────────────────────────────
+model sh_schools {
+  id                       String   @id @db.VarChar(16)
+  name                     String   @db.VarChar(128)
+  abbreviation             String   @db.VarChar(16)
+  email                    String?  @db.VarChar(128)
+  phone                    String?  @db.VarChar(32)
+  address                  String?  @db.Text
+  motto                    String?  @db.Text
+  school_type              String   @default("primary") @db.VarChar(16)
+  name_primary             String?  @db.VarChar(128)
+  name_secondary           String?  @db.VarChar(128)
+  abbr_primary             String?  @db.VarChar(16)
+  abbr_secondary           String?  @db.VarChar(16)
+  principal_name           String?  @db.VarChar(128)
+  head_teacher_name        String?  @db.VarChar(128)
+  color1                   String?  @db.VarChar(16)
+  color2                   String?  @db.VarChar(16)
+  school_logo              String?  @db.Text
+  school_stamp             String?  @db.Text
+  sig_principal            String?  @db.Text
+  head_signature           String?  @db.Text
+  student_limit            Int?
+  plan_label               String   @default("Free") @db.VarChar(32)
+  coupon_used              String?  @db.VarChar(32)
+  show_position            Boolean  @default(false)
+  show_bf                  Boolean  @default(false)
+  default_attendance_weeks Int      @default(14)
+  password_hash            String?  @db.VarChar(255)
+  created_at               DateTime @default(now()) @db.Timestamptz
+  updated_at               DateTime @updatedAt @db.Timestamptz
+}
+
+// ── Session Tokens (auth only — NOT academic sessions) ───────────
+model sh_sessions {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique @db.VarChar(64)
+  school_id  String   @db.VarChar(16)
+  is_dev     Boolean  @default(false)
+  teacher_id Int?
+  expires_at DateTime @db.Timestamptz
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([token])
+}
+
+// ── Auth Credentials ─────────────────────────────────────────────
+model sh_auth {
+  id            Int       @id @default(autoincrement())
+  school_id     String    @db.VarChar(16)
+  teacher_id    Int?      @unique
+  email         String    @db.VarChar(128)
+  password_hash String    @db.VarChar(255)
+  guard         String    @default("web") @db.VarChar(32)
+  last_login    DateTime? @db.Timestamptz
+  created_at    DateTime  @default(now()) @db.Timestamptz
+  updated_at    DateTime  @updatedAt @db.Timestamptz
+
+  @@index([email])
+  @@index([school_id])
+  @@index([teacher_id])
+}
+
+// ── Password Reset Tokens ─────────────────────────────────────────
+model sh_password_resets {
+  id         Int      @id @default(autoincrement())
+  teacher_id Int?
+  email      String   @db.VarChar(128)
+  token      String   @unique @db.VarChar(255)
+  expires_at DateTime @db.Timestamptz
+  created_at DateTime @default(now()) @db.Timestamptz
+}
+
+// ── Coupons ──────────────────────────────────────────────────────
+model sh_coupons {
+  id             Int       @id @default(autoincrement())
+  code           String    @unique @db.VarChar(32)
+  type           String    @db.VarChar(32)
+  student_limit  Int?
+  plan_label     String    @db.VarChar(32)
+  used           Boolean   @default(false)
+  used_by        String?   @db.VarChar(16)
+  used_by_name   String?   @db.VarChar(128)
+  used_date      DateTime? @db.Timestamptz
+  generated_date DateTime  @default(now()) @db.Timestamptz
+}
+
+// ── Teachers ─────────────────────────────────────────────────────
+model sh_teachers {
+  id               Int       @id @default(autoincrement())
+  school_id        String    @db.VarChar(16)
+  name             String    @db.VarChar(128)
+  employee_id      String?   @db.VarChar(32)
+  email            String?   @db.VarChar(128)
+  phone            String?   @db.VarChar(32)
+  gender           String?   @db.VarChar(16)
+  dob              DateTime? @db.Date
+  class            String?   @db.VarChar(64)
+  classes          String?   @db.Text
+  subjects         String?   @db.Text
+  admin_tasks      String?   @db.Text
+  role             String    @default("both") @db.VarChar(32)
+  is_class_teacher Boolean   @default(false)
+  qualification    String?   @db.VarChar(128)
+  specialisation   String?   @db.VarChar(128)
+  hire_date        DateTime? @db.Date
+  avatar           String?   @db.Text
+  signature        String?   @db.Text
+  address          String?   @db.Text
+  department       String?   @db.VarChar(64)
+  staff_type       String?   @db.VarChar(32)
+  approval_status  String    @default("approved") @db.VarChar(32)
+  self_registered  Boolean   @default(false)
+  rejection_reason String?   @db.Text
+  password         String?   @db.VarChar(255)
+  created_at       DateTime  @default(now()) @db.Timestamptz
+  updated_at       DateTime  @updatedAt @db.Timestamptz
+
+  @@unique([school_id, employee_id])
+  @@index([school_id])
+}
+
+// ── Students ─────────────────────────────────────────────────────
+model sh_students {
+  id         String    @id @default(dbgenerated("gen_random_uuid()::TEXT")) @db.VarChar(36)
+  school_id  String    @db.VarChar(16)
+  adm        String    @db.VarChar(64)
+  name       String    @db.VarChar(128)
+  gender     String?   @db.VarChar(16)
+  dob        DateTime? @db.Date
+  level      String?   @db.VarChar(64)
+  class      String    @db.VarChar(64)
+  department String?   @db.VarChar(64)
+  arm        String?   @db.VarChar(32)
+  term       String    @db.VarChar(16)
+  session    String    @db.VarChar(16)
+  house      String?   @db.VarChar(64)
+  passport   String?   @db.Text
+  clubs      String?   @db.Text
+  created_at DateTime  @default(now()) @db.Timestamptz
+  updated_at DateTime  @updatedAt @db.Timestamptz
+
+  @@unique([school_id, adm])
+  @@index([school_id])
+  @@index([school_id, class])
+}
+
+// ── Results / Report Cards ────────────────────────────────────────
+model sh_results {
+  id                String   @id @default(dbgenerated("gen_random_uuid()::TEXT")) @db.VarChar(36)
+  school_id         String   @db.VarChar(16)
+  student_id        String?  @db.VarChar(36)
+  student_adm       String?  @db.VarChar(64)
+  student_name      String?  @db.VarChar(128)
+  class             String   @db.VarChar(64)
+  term              String   @db.VarChar(16)
+  session           String   @db.VarChar(16)
+  result_type       String   @default("full") @db.VarChar(16)
+  subjects          String?  @db.Text
+  overall_total     Decimal  @default(0) @db.Decimal(6, 2)
+  avg               Decimal  @default(0) @db.Decimal(5, 2)
+  grade             String?  @db.VarChar(4)
+  position          Int?
+  out_of            Int?
+  affective         String?  @db.Text
+  teacher_name      String?  @db.VarChar(128)
+  teacher_comment   String?  @db.Text
+  principal_comment String?  @db.Text
+  student_passport  String?  @db.Text
+  department        String?  @db.VarChar(64)
+  teacher_signature String?  @db.Text
+  created_at        DateTime @default(now()) @db.Timestamptz
+  updated_at        DateTime @updatedAt @db.Timestamptz
+
+  @@index([school_id])
+  @@index([school_id, student_id])
+}
+
+// ── Result PINs (for public result checking) ──────────────────────
+model sh_pins {
+  id          Int       @id @default(autoincrement())
+  school_id   String    @db.VarChar(16)
+  student_id  String?   @db.VarChar(36)
+  pin         String    @unique @db.VarChar(32)
+  result_type String    @default("full") @db.VarChar(16)
+  duration    String    @default("term") @db.VarChar(16)
+  used        Boolean   @default(false)
+  used_at     DateTime? @db.Timestamptz
+  revoked     Boolean   @default(false)
+  expires_at  DateTime? @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+}
+
+// ── Academic Sessions ─────────────────────────────────────────────
+model sh_acad_sessions {
+  id               Int       @id @default(autoincrement())
+  school_id        String?   @db.VarChar(16)
+  label            String    @db.VarChar(16)
+  start_year       Int
+  end_year         Int
+  is_current       Boolean   @default(false)
+  days_opened      Int?
+  next_term_begins DateTime? @db.Date
+  current_term     String?   @db.VarChar(16)
+  attendance_weeks Int       @default(14)
+  current_week     Int       @default(1)
+  default_weeks    Int?      @default(14)
+  school_days      Int?      @default(180)
+  next_term_start  DateTime? @db.Date
+  created_at       DateTime  @default(now()) @db.Timestamptz
+}
+
+// ── Attendance ────────────────────────────────────────────────────
+model sh_attendance {
+  id         Int       @id @default(autoincrement())
+  school_id  String    @db.VarChar(16)
+  student_id String    @db.VarChar(36)
+  class      String    @db.VarChar(64)
+  term       String    @db.VarChar(16)
+  session    String    @db.VarChar(16)
+  week_label String    @db.VarChar(32)
+  week_start DateTime? @db.Date
+  days       String?   @db.Text
+  created_at DateTime  @default(now()) @db.Timestamptz
+
+  @@unique([school_id, student_id, term, session, week_label])
+}
+
+// ── Subjects ──────────────────────────────────────────────────────
+model sh_subjects {
+  id            Int      @id @default(autoincrement())
+  school_id     String   @db.VarChar(16)
+  name          String   @db.VarChar(128)
+  code          String?  @db.VarChar(16)
+  description   String?  @db.Text
+  department    String?  @db.VarChar(64)
+  is_compulsory Boolean  @default(true)
+  class_level   String?  @db.VarChar(32)
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @updatedAt @db.Timestamptz
+
+  @@unique([school_id, name])
+}
+
+// ── Subject Assignments (teacher → subject → class) ───────────────
+model sh_subject_assignments {
+  id         Int      @id @default(autoincrement())
+  school_id  String   @db.VarChar(16)
+  subject_id Int
+  class      String   @db.VarChar(64)
+  teacher_id Int?
+  term       String   @db.VarChar(16)
+  session    String   @db.VarChar(16)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@unique([school_id, subject_id, class, term, session])
+}
+
+// ── Audit Log ─────────────────────────────────────────────────────
+model sh_audit_log {
+  id         Int      @id @default(autoincrement())
+  school_id  String?  @db.VarChar(16)
+  action     String   @db.VarChar(128)
+  details    String?  @db.Text
+  ip         String?  @db.VarChar(45)
+  created_at DateTime @default(now()) @db.Timestamptz
+}
+
+// ── School Classes ────────────────────────────────────────────────
+model sh_school_classes {
+  id         Int      @id @default(autoincrement())
+  school_id  String   @db.VarChar(20)
+  name       String   @db.VarChar(100)
+  is_active  Boolean  @default(true)
+  is_custom  Boolean  @default(false)
+  sort_order Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@unique([school_id, name])
+  @@index([school_id])
+}
+
+// ── Class Subjects ────────────────────────────────────────────────
+model sh_class_subjects {
+  id         Int      @id @default(autoincrement())
+  class_id   Int
+  school_id  String   @db.VarChar(20)
+  name       String   @db.VarChar(150)
+  department String?  @db.VarChar(64)
+  sort_order Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  @@unique([class_id, name])
+  @@index([class_id])
+  @@index([school_id])
+}
+
+// ── Teacher Coupons (school-admin generated, for teacher self-registration) ──
+model sh_teacher_coupons {
+  id           Int       @id @default(autoincrement())
+  school_id    String    @db.VarChar(16)
+  code         String    @unique @db.VarChar(32)
+  label        String?   @db.VarChar(128)
+  used         Boolean   @default(false)
+  used_by_id   Int?
+  used_by_name String?   @db.VarChar(128)
+  used_at      DateTime? @db.Timestamptz
+  expires_at   DateTime? @db.Timestamptz
+  created_at   DateTime  @default(now()) @db.Timestamptz
+
+  @@index([school_id])
+  @@index([code])
+}

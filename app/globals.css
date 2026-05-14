@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+
+/* ─────────────────────────────────────────────────────────────────
+   STEAMhives RMS — Design Tokens (CSS Custom Properties)
+   Used by Input, Select, Card, and all glass-style components.
+   Must be defined here so they work in both SSR and client renders.
+   ───────────────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="light"] {
+  /* Font */
+  --font-montserrat: 'Montserrat', sans-serif;
+
+  /* Topbar */
+  --topbar-height: 60px;
+
+  /* Glass surfaces (light mode — white with low opacity) */
+  --glass-bg:            rgba(255, 255, 255, 0.85);
+  --glass-bg-subtle:     rgba(255, 255, 255, 0.60);
+  --glass-border:        rgba(5, 13, 26, 0.14);
+  --glass-border-focus:  rgba(251, 146, 60, 0.60);
+
+  /* Text */
+  --text-primary:        #0f172a;
+  --text-secondary:      #475569;
+  --text-muted:          #94a3b8;
+  --text-disabled:       #cbd5e1;
+
+  /* Surface / page background */
+  --surface-bg:          #f1f5f9;
+  --surface-card:        #ffffff;
+  --surface-elevated:    #ffffff;
+  --surface-2:           rgba(255, 255, 255, 0.95);
+
+  /* Brand orange */
+  --orange-vivid:        #fb923c;
+  --orange-glow:         rgba(251, 146, 60, 0.20);
+  --orange-hover:        #f97316;
+
+  /* Sidebar */
+  --sidebar-bg:          #050d1a;
+  --sidebar-text:        rgba(255, 255, 255, 0.80);
+  --sidebar-active:      rgba(251, 146, 60, 0.15);
+  --sidebar-active-text: #fb923c;
+
+  /* Borders */
+  --border-subtle:       rgba(5, 13, 26, 0.08);
+  --border-default:      rgba(5, 13, 26, 0.14);
+
+  /* Status colours */
+  --success:             #22c55e;
+  --success-bg:          rgba(34, 197, 94, 0.10);
+  --error:               #ef4444;
+  --error-bg:            rgba(239, 68, 68, 0.10);
+  --warning:             #f59e0b;
+  --warning-bg:          rgba(245, 158, 11, 0.10);
+  --info:                #3b82f6;
+  --info-bg:             rgba(59, 130, 246, 0.10);
+}
+
+/* Dark mode overrides */
+.dark,
+[data-theme="dark"] {
+  /* Glass surfaces (dark mode) */
+  --glass-bg:            rgba(255, 255, 255, 0.06);
+  --glass-bg-subtle:     rgba(255, 255, 255, 0.03);
+  --glass-border:        rgba(255, 255, 255, 0.11);
+  --glass-border-focus:  rgba(251, 146, 60, 0.50);
+
+  /* Text */
+  --text-primary:        rgba(255, 255, 255, 0.92);
+  --text-secondary:      rgba(255, 255, 255, 0.55);
+  --text-muted:          rgba(255, 255, 255, 0.30);
+  --text-disabled:       rgba(255, 255, 255, 0.18);
+
+  /* Surface */
+  --surface-bg:          #070b14;
+  --surface-card:        rgba(255, 255, 255, 0.04);
+  --surface-elevated:    rgba(255, 255, 255, 0.07);
+  --surface-2:           rgba(20, 25, 40, 0.95);
+
+  /* Borders */
+  --border-subtle:       rgba(255, 255, 255, 0.06);
+  --border-default:      rgba(255, 255, 255, 0.11);
+}
+
+@layer base {
+  html { scroll-behavior: smooth; background-color: #f8fafc; font-family: 'Montserrat', var(--font-montserrat), sans-serif; }
+  body { min-height: 100vh; background-color: #f8fafc; color: #0f172a; font-family: 'Montserrat', var(--font-montserrat), sans-serif; }
+  .dark body, body.dark { background-color: #070b14; color: #f1f5f9; }
+  *, *::before, *::after { font-family: 'Montserrat', var(--font-montserrat), sans-serif; }
+}
+
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.2s ease-out forwards;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+}
+/* ─────────────────────────────────────────────────────────────────
+   Button variants — used by Button.tsx via btn-* class names
+   ───────────────────────────────────────────────────────────────── */
+@layer components {
+  .btn-primary {
+    @apply bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white shadow-sm shadow-orange-500/20;
+  }
+  .btn-ghost {
+    @apply bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700;
+  }
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 active:bg-red-700 text-white shadow-sm shadow-red-500/20;
+  }
+
+  /* Modal scale-in animation */
+  .animate-scale-in {
+    animation: scaleIn 0.18s ease-out forwards;
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.97) translateY(6px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);   }
+  }
+}
